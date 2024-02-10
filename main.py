@@ -3,6 +3,7 @@ from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
 import creds
 import os
+import re
 import pandas as pd
 
 url_scrape = 'https://www.zoopla.co.uk/find-agents/estate-agents/directory/a/'
@@ -41,7 +42,9 @@ def get_link():
 
 def parse_attribute_error(html, selector):
     try:
-        return html.css_first(selector).text().strip()
+        data = html.css_first(selector).text().strip()
+        return re.sub(r'\s+', ' ', data)
+
     except AttributeError:
         return None
     
@@ -57,12 +60,20 @@ def export_to_csv(ads: list):
         output_df.to_csv(output, mode='a', header=False, index=False)
 
 
-links = get_link()
+def main():
+    links = get_link()
 
-for link in links:
-    main = get_html(link)
+    for link in links:
+        main = get_html(link)
 
-    address = parse_attribute_error(main, 'div.agents-results-copy p')
-    contacts = parse_attribute_error(main, 'div.agents-results-contact-item.agents-results-contact-phone a')
-    name = parse_attribute_error(main, 'div#content h1')
+        address = parse_attribute_error(main, 'div.agents-results-copy p span').split('-')[0]
+        contacts = parse_attribute_error(main, 'div.agents-results-contact-item.agents-results-contact-phone a')
+        name = parse_attribute_error(main, 'div#content h1')
 
+        print(address)
+        print(contacts)
+        print(name)
+
+
+if __name__ == '__main__':
+    main()
