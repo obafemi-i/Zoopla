@@ -14,6 +14,9 @@ header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/2010010
 
 session = requests.Session()
 
+scraped_urls_file = 'scraped_urls.txt'
+
+
 def get_html(url_to_scrape: str):
 
     response = session.get(
@@ -40,6 +43,16 @@ def get_link():
         yield full_link
 
 
+def get_scraped_urls():
+    try:
+        with open(scraped_urls_file, 'r') as file:
+            scraped_urls = set(file.read().splitlines())
+    except FileNotFoundError:
+        scraped_urls = set()
+
+    return scraped_urls
+
+
 def parse_attribute_error(html, selector):
     try:
         data = html.css_first(selector).text().strip()
@@ -60,20 +73,47 @@ def export_to_csv(ads: list):
         output_df.to_csv(output, mode='a', header=False, index=False)
 
 
-def main():
+def extract_and_save_info():
     links = get_link()
 
     for link in links:
+
+        # to avoid scraping an already scraped URL incase the scraper has to be restarted
+        if link in get_scraped_urls():
+            print(f"Skipping {link} as it has already been scraped.")
+            continue
+
         main = get_html(link)
 
         address = parse_attribute_error(main, 'div.agents-results-copy p span').split('-')[0]
         contacts = parse_attribute_error(main, 'div.agents-results-contact-item.agents-results-contact-phone a')
         name = parse_attribute_error(main, 'div#content h1')
 
-        print(address)
-        print(contacts)
-        print(name)
+        agent_list = []
+
+        agent_dict = {
+           'Agency': name,
+           'Contact': contacts,
+           'Address': address
+        }
+
+        agent_list.append(agent_dict)
+
+        export_to_csv(agent_list)
+
+        # Add the scraped URL to the set of scraped URLs
+        get_scraped_urls().add(link)
+
+        # Save the scraped URLs to the file
+        with open(scraped_urls_file, 'a') as file:
+            file.write(link + '\n')
+
+        print(f'Details of {name} agency extracted, moving on...')
 
 
+def main():
+    extract_and_save_info()
+
+    
 if __name__ == '__main__':
     main()
