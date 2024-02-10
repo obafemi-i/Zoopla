@@ -1,16 +1,17 @@
 import requests
+import pandas as pd
 from selectolax.parser import HTMLParser
+
 from urllib.parse import urljoin
-import creds
+from string import ascii_lowercase as asc
+
 import os
 import re
-import pandas as pd
 
-url_scrape = 'https://www.zoopla.co.uk/find-agents/estate-agents/directory/a/'
+import creds
+
 
 output = 'output.csv'
-
-header = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0'}
 
 session = requests.Session()
 
@@ -32,8 +33,8 @@ def get_html(url_to_scrape: str):
     return html
 
 
-def get_link():
-    html = get_html(url_scrape)
+def get_link(url):
+    html = get_html(url)
     body = html.css('ul.clearfix li')
 
     for bod in body:
@@ -73,8 +74,8 @@ def export_to_csv(ads: list):
         output_df.to_csv(output, mode='a', header=False, index=False)
 
 
-def extract_and_save_info():
-    links = get_link()
+def extract_and_save_info(url):
+    links = get_link(url)
 
     for link in links:
 
@@ -112,8 +113,10 @@ def extract_and_save_info():
 
 
 def main():
-    extract_and_save_info()
+    for alf in asc:
+        url_scrape = f'https://www.zoopla.co.uk/find-agents/estate-agents/directory/{alf}/'
+        extract_and_save_info(url_scrape)
 
-    
+
 if __name__ == '__main__':
     main()
